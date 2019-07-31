@@ -12,4 +12,5 @@ admin.site.register(models.Server)
 admin.site.register(models.UserGroup)
 admin.site.register(models.AG)
 admin.site.register(models.UG)
+admin.site.register(models.AdminGroup)
 

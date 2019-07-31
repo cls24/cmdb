@@ -83,7 +83,7 @@ class Asset(Model):
 
     idc = models.ForeignKey('IDC', null=True, on_delete=models.CASCADE, verbose_name='IDC机房')
     business_unit = models.ForeignKey('BusinessUnit', null=True, on_delete=models.CASCADE, verbose_name='业务线')
-    department = models.ForeignKey('Department', on_delete=models.CASCADE, verbose_name='部门')
+    department = models.ForeignKey('Department', null=True,on_delete=models.CASCADE, verbose_name='部门')
     latest_date = models.DateField(null=True)
     add_time = models.DateTimeField(auto_now_add=True)
 

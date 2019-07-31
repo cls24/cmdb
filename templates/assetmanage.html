@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h5>test</h5>
+<button id="editmode_id" edit=false onclick="editmode()">进入编辑模式</button>
+
+<table>
+    <thead id="tb_head">
+
+    </thead>
+
+    <tbody id="tb_body">
+
+    </tbody>
+</table>
+</body>
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script>
+    $(function () {
+        ajaxGetAsset()
+
+    })
+    $('body').delegate('.selectrow', 'click', function (e) {
+        let tds = $(this).parent().parent().children()
+        if (this.checked === true) {
+            td2children(tds)
+        } else {
+            children2td(tds)
+        }
+
+    })
+
+    function children2td(tds) {
+        $.each(tds, (i, td) => {
+            if (td.getAttribute('edit')) {
+                let t = $(td)
+                let child = t.children().first()
+                let type = td.getAttribute('type')
+                let val = child.val()
+                if (type === 'select') {
+                    val = child.find("option:selected").text();
+                }
+                t.text(val)
+                t.children().remove()
+            }
+        })
+    }
+
+    function td2children(tds) {
+        $.each(tds, (i, td) => {
+            if (td.getAttribute('edit')) {
+                let type = td.getAttribute('type')
+                let t = $(td)
+                let txt = t.text()
+                t.text('')
+                let ele = document.createElement(type)
+                if (type === 'select'){
+                    makeSelectElement(ele,td)
+                    $(ele).find(`option[text=${txt}]`).attr("selected",true)
+                }else {
+                    ele.value = txt
+                }
+                t.append(ele)
+            }
+        })
+    }
+
+    function makeSelectElement(ele,td) {
+        let opts = window[td.id]
+        $.each(opts,(k,v)=>{
+            let opt = document.createElement('option')
+            opt.value = v[0]
+            opt.text = v[1]
+            $(ele).append(opt)
+        })
+    }
+
+    function editmode() {
+        let edit = $('#editmode_id')
+        let txt = ''
+        let disabled = null
+        if (edit.attr('edit') === 'true') {
+            edit.attr('edit', 'false')
+            txt = '进入编辑模式'
+            disabled = true
+            let rows = $('#tb_body').children()
+            setCheckboxsDisable()
+            $.each(rows, (i, tr) => {
+                let tds = $(tr).children()
+                let checkbox = $("tr td:first").children().first()
+                if (checkbox.is(':checked')) {children2td(tds)}
+            })
+
+        } else {
+            edit.attr('edit', 'true')
+            disabled = false
+            txt = '退出编辑模式'
+        }
+        $('.selectrow').attr('disabled', disabled)
+        edit.text(txt)
+    }
+
+    function setCheckboxsDisable() {
+        $.each($('.selectrow'), (i, v) => {
+            v.checked = false
+        })
+    }
+
+    function makeCheckbox() {
+        let ckb = document.createElement('input')
+        ckb.setAttribute('type', 'checkbox')
+        ckb.setAttribute('disabled', true)
+        $(ckb).addClass('selectrow')
+        return ckb
+    }
+
+    function ajaxGetAsset() {
+        $.ajax({
+            url: '/webadmin/ajaxasset',
+            method: 'GET',
+            dataType: 'json',
+            success: function (arg) {
+                console.log(arg)
+                initGlobalDict(arg)
+                createTableHead(arg)
+                createTableBody(arg)
+            }
+        })
+    }
+
+    function initGlobalDict(arg) {
+        $.each(arg['global_dict'], (k, v) => {
+            window[k] = v
+        })
+    }
+
+    function createTableHead(arg) {
+        let tb_config = arg.tb_config
+        let head_tr = document.createElement('tr')
+        tb_config.forEach(function (conf) {
+            if (conf.display) {
+                let th = document.createElement('th')
+                th.innerText = conf.title
+                $(head_tr).append(th)
+            }
+        })
+        $('#tb_head').append(head_tr)
+    }
+
+    function createTableBody(arg) {
+        let tb_data = arg.tb_data
+        let tb_config = arg.tb_config
+        tb_data.forEach((row) => {
+            let tr = document.createElement('tr')
+            tb_config.forEach((colConf) => {
+                if (colConf.display) {
+                    let td = document.createElement('td')
+                    let kw = Object.assign({}, colConf.text.kwargs)
+                    $.each(kw, (key, val) => {
+                        let choice_key = null
+                        if (val.substring(0, 2) === "@@") {
+                            choice_key = val.substring(2, val.length)
+                            td.id = choice_key
+                            let idx = row[colConf.q] - 1
+                            kw[key] = window[choice_key][idx][1]
+                        } else if (val[0] === '@') {
+                            choice_key = val.substring(1, val.length)
+                            kw[key] = row[choice_key]
+                        }
+                        td.id = choice_key
+                    })
+                    td.innerHTML = colConf.text.content.format(kw)
+                    $.each(colConf.attrs, (k, v) => {
+                        td.setAttribute(k, v)
+                    })
+                    if (colConf.title === '选择') {
+                        $(td).append(makeCheckbox())
+                    }
+                    tr.append(td)
+                }
+            })
+            $('#tb_body').append(tr)
+        })
+    }
+
+    String.prototype.format = function (kw) {
+        return this.replace(/{(\w+)}/g, function (km, m) {
+            return kw[m]
+        })
+    }
+</script>
+</html>
