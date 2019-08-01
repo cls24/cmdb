@@ -66,7 +66,7 @@ class Asset(Model):
     device_type_choices = (
         (1, '服务器'),
         (2, '交换机'),
-        (3, '防火墙'),
+        (3, '路由器'),
         (4, '防火墙'),
     )
     device_status_choices = (

@@ -5,10 +5,13 @@
     <title>Title</title>
 </head>
 <body>
-<h5>test</h5>
-<button id="editmode_id" edit=false onclick="editmode()">进入编辑模式</button>
-
-<table>
+<button onclick="selectAllRows()">选择所有</button>
+<button onclick="cancelAllRows()">取消所有</button>
+<button onclick="reverseAllRows()">反选</button>
+<button id="editmode_id" edit=false onclick="choseEditMode()">进入编辑模式</button>
+<button onclick="">批量删除</button>
+<button onclick="saveData()">保存</button>
+<table id="tb">
     <thead id="tb_head">
 
     </thead>
@@ -25,17 +28,64 @@
 
     })
     $('body').delegate('.selectrow', 'click', function (e) {
-        let tds = $(this).parent().parent().children()
-        if (this.checked === true) {
-            td2children(tds)
-        } else {
-            children2td(tds)
+        let tr = $(this).parent().parent()
+        if (isEditMode()) {
+            if (this.checked === true) {
+                enableEditRow(tr)
+            } else {
+                disableEditRow(tr)
+            }
         }
-
     })
 
-    function children2td(tds) {
-        $.each(tds, (i, td) => {
+    function isEditMode() {
+        if ($('#editmode_id').attr('edit') === 'true') {
+            return true
+        } else {
+            return false
+        }
+    }
+
+    function selectAllRows() {
+        $('.selectrow').each((_, e) => {
+            if (!e.checked) {
+                if (isEditMode()) {
+                    enableEditRow($(e).parent().parent())
+                }
+                e.checked = true
+            }
+        })
+    }
+
+    function cancelAllRows() {
+        $('.selectrow').each((_, e) => {
+            if (e.checked) {
+                if (isEditMode()) {
+                    disableEditRow($(e).parent().parent())
+                }
+                e.checked = false
+            }
+        })
+    }
+
+    function reverseAllRows() {
+        $('.selectrow').each((_, e) => {
+            let tr = $(e).parent().parent()
+            if (e.checked) {
+                if (isEditMode()) {
+                    disableEditRow(tr)
+                }
+            } else {
+                if (isEditMode()) {
+                    enableEditRow(tr)
+                }
+            }
+            e.checked = !e.checked
+        })
+    }
+
+    function disableEditRow(tr) {
+        $.each($(tr).children(), (i, td) => {
             if (td.getAttribute('edit')) {
                 let t = $(td)
                 let child = t.children().first()
@@ -44,23 +94,28 @@
                 if (type === 'select') {
                     val = child.find("option:selected").text();
                 }
+                if (val !== td.getAttribute('oldvalue')) {
+                    td.setAttribute('newvalue', val)
+                }
                 t.text(val)
                 t.children().remove()
             }
         })
     }
 
-    function td2children(tds) {
-        $.each(tds, (i, td) => {
+    function enableEditRow(tr) {
+        $.each($(tr).children(), (i, td) => {
             if (td.getAttribute('edit')) {
                 let type = td.getAttribute('type')
                 let t = $(td)
                 let txt = t.text()
                 t.text('')
                 let ele = document.createElement(type)
+                console.log(ele)
                 if (type === 'select'){
-                    makeSelectElement(ele,td)
-                    $(ele).find(`option[text=${txt}]`).attr("selected",true)
+                    makeSelectElement(ele,td.id)
+                    findSelectedIdxByValue(ele,txt)
+                    {#$(ele).find(`option[value=${findSelectedIdxByValue(ele,txt)}]`).attr("selected",true)#}
                 }else {
                     ele.value = txt
                 }
@@ -68,54 +123,93 @@
             }
         })
     }
+    function findSelectedIdxByValue(select,txt) {
+        for (let i of $(select).children()){
+            if (i.text = txt){
+                return i.value
+            }
+        }
+    }
+    function makeSelectElement(select,td_id) {
+        let opts = window['global_dict'][td_id]
+        for (let i of opts) {
+                        let opt = document.createElement('option')
+            opt.value = i[0]
+            opt.innerHTML = i[1]
+            $(select).append(opt)
+        }
+    }
 
-    function makeSelectElement(ele,td) {
-        let opts = window[td.id]
-        $.each(opts,(k,v)=>{
-            let opt = document.createElement('option')
-            opt.value = v[0]
-            opt.text = v[1]
-            $(ele).append(opt)
+    function choseEditMode() {
+        if ($('#editmode_id').attr('edit') === 'true') {
+            exitEditMode()
+        } else {
+            gotoEditMode()
+        }
+    }
+
+    function gotoEditMode() {
+        let edit = $('#editmode_id')
+        edit.attr('edit', 'true')
+        edit.text('退出编辑模式')
+        $('#tb_body').find(':checked').each((_, t) => {
+            enableEditRow($(t).parent().parent())
         })
     }
 
-    function editmode() {
+    function exitEditMode() {
         let edit = $('#editmode_id')
-        let txt = ''
-        let disabled = null
-        if (edit.attr('edit') === 'true') {
-            edit.attr('edit', 'false')
-            txt = '进入编辑模式'
-            disabled = true
-            let rows = $('#tb_body').children()
-            setCheckboxsDisable()
-            $.each(rows, (i, tr) => {
-                let tds = $(tr).children()
-                let checkbox = $("tr td:first").children().first()
-                if (checkbox.is(':checked')) {children2td(tds)}
-            })
-
-        } else {
-            edit.attr('edit', 'true')
-            disabled = false
-            txt = '退出编辑模式'
-        }
-        $('.selectrow').attr('disabled', disabled)
-        edit.text(txt)
-    }
-
-    function setCheckboxsDisable() {
-        $.each($('.selectrow'), (i, v) => {
-            v.checked = false
+        edit.attr('edit', 'false')
+        edit.text('进入编辑模式')
+        $('#tb_body').find(':checked').each((_, t) => {
+            {#t.checked = false#}
+            disableEditRow($(t).parent().parent())
         })
     }
 
     function makeCheckbox() {
         let ckb = document.createElement('input')
         ckb.setAttribute('type', 'checkbox')
-        ckb.setAttribute('disabled', true)
+        {#ckb.setAttribute('disabled', true)#}
         $(ckb).addClass('selectrow')
         return ckb
+    }
+
+    function saveData() {
+        if (isEditMode()) {
+            exitEditMode()
+        }
+        let data = packageTbData()
+        console.log(data)
+        ajaxPostAsset(data, postAssetCallBack)
+    }
+
+    function packageTbData() {
+        let data = {}
+        $('#tb_body').find(':checked').each((_, row) => {
+            let tr = $(row).parent().parent()
+            let tds = tr.find("[edit|='true']")
+            let id = tr[0].id
+            data[id] = {}
+            $.each(tds, (_, td) => {
+                let txt = ''
+                let new_val = td.getAttribute('newvalue')
+                if (new_val !== '') {
+                    if (window['global_dict'].hasOwnProperty(td.id)) {
+                        for (let item of window['global_dict'][td.id]) {
+                            if (item[1] === new_val) {
+                                txt = item[0]
+                                break
+                            }
+                        }
+                    } else {
+                        txt = new_val
+                    }
+                    data[id][td.id] = txt
+                }
+            })
+        })
+        return data
     }
 
     function ajaxGetAsset() {
@@ -132,9 +226,27 @@
         })
     }
 
+    function ajaxPostAsset(data, callback) {
+        $.ajax({
+            url: '/webadmin/ajaxasset',
+            method: 'POST',
+            data: {'data': JSON.stringify(data), csrfmiddlewaretoken: '{{ csrf_token }}'},
+            dataType: 'json',
+            success: function (arg) {
+                console.log(arg)
+                callback(arg)
+            }
+        })
+    }
+
+    function postAssetCallBack(arg) {
+
+    }
+
     function initGlobalDict(arg) {
+        window['global_dict']={}
         $.each(arg['global_dict'], (k, v) => {
-            window[k] = v
+            window['global_dict'][k] = v
         })
     }
 
@@ -151,22 +263,31 @@
         $('#tb_head').append(head_tr)
     }
 
+    function findGlobalKey(choice_key, idx) {
+        for (let i of window['global_dict'][choice_key]) {
+            if (i[0] === idx) {
+                return i[1]
+            }
+        }
+    }
+
     function createTableBody(arg) {
         let tb_data = arg.tb_data
         let tb_config = arg.tb_config
         tb_data.forEach((row) => {
             let tr = document.createElement('tr')
+            tr.id = row.id
             tb_config.forEach((colConf) => {
+                let td = document.createElement('td')
+                let kw = Object.assign({}, colConf.text.kwargs)
+                let idx = row[colConf.q]
                 if (colConf.display) {
-                    let td = document.createElement('td')
-                    let kw = Object.assign({}, colConf.text.kwargs)
                     $.each(kw, (key, val) => {
                         let choice_key = null
                         if (val.substring(0, 2) === "@@") {
                             choice_key = val.substring(2, val.length)
                             td.id = choice_key
-                            let idx = row[colConf.q] - 1
-                            kw[key] = window[choice_key][idx][1]
+                            kw[key] = findGlobalKey(choice_key, idx)
                         } else if (val[0] === '@') {
                             choice_key = val.substring(1, val.length)
                             kw[key] = row[choice_key]
@@ -175,7 +296,15 @@
                     })
                     td.innerHTML = colConf.text.content.format(kw)
                     $.each(colConf.attrs, (k, v) => {
-                        td.setAttribute(k, v)
+                        let txt = v
+                        if (typeof(v) === "string") {
+                            if (v.substring(0, 2) === '@@') {
+                                txt = findGlobalKey(v.substring(2, v.length), idx)
+                            } else if (v[0] === '@') {
+                                txt = row[v.substring(1, v.length)]
+                            }
+                        }
+                        td.setAttribute(k, txt)
                     })
                     if (colConf.title === '选择') {
                         $(td).append(makeCheckbox())
