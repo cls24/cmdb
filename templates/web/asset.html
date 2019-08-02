@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+    <button id="checkall_id">选择所有</button>
+    <button id="cancelall_id">取消所有</button>
+    <button id="reverseall_id">反选</button>
+    <button id="editmode_id" edit=false">进入编辑模式</button>
+    <button id="editmode_id">批量删除</button>
+    <button id="savedata_id">保存</button>
+    <div>
+        <table id="tb">
+            <thead id="tb_head">
+            </thead>
+            <tbody id="tb_body">
+            </tbody>
+        </table>
+    </div>
+    <div id="pager_id"></div>
+{% endblock %}
+{% block script %}
+    <script>
+        $(function () {
+            $.CRUD('/web/assetjson', '{{ csrf_token }}')
+        })
+    </script>
+{% endblock %}
