@@ -1,3 +1,4 @@
+
 (function () {
 
     function init(pn) {
@@ -92,28 +93,29 @@
                     'POST',
                     {'data': JSON.stringify(data), csrfmiddlewaretoken: csrfToken},
                     function (arg) {
-                        $('#tb_head').children().remove()
-                        $('#tb_body').children().remove()
-                        $('#pager_id').children().remove()
-                        init(1)
+                        let pn = $('.page-item.active').attr('pn')
+                        clearTable()
+                        init(pn)
                     }
                 )
             }
         })
     }
-
+    function clearTable() {
+        $('#tb_head').children().remove()
+        $('#tb_body').children().remove()
+        $('#pager_id').children().remove()
+    }
     function bindSelectPage() {
         $('.page-link').on('click',(e)=>{
-            let pn = e.currentTarget.innerHTML
+            // let pn = e.currentTarget.innerHTML
+            let pn = $(e.currentTarget).parent().attr('pn')
+            clearTable()
             init(pn)
         })
     }
     function isEditMode() {
-        if ($('#editmode_id').attr('edit') === 'true') {
-            return true
-        } else {
-            return false
-        }
+        return $('#editmode_id').attr('edit') === 'true'
     }
 
     function findSelectedIdxByValue(select, txt) {
@@ -125,13 +127,17 @@
     }
 
     function makeSelectElement(select, td_id) {
-        let opts = window['global_dict'][td_id]
-        for (let i of opts) {
-            let opt = document.createElement('option')
-            opt.value = i[0]
-            opt.innerHTML = i[1]
-            $(select).append(opt)
+        let global_dict = window['global_dict']
+        if (global_dict.hasOwnProperty(td_id)){
+            let opts = global_dict[td_id]
+            for (let i of opts) {
+                let opt = document.createElement('option')
+                opt.value = i[0]
+                opt.innerHTML = i[1]
+                $(select).append(opt)
+            }
         }
+
     }
 
     function makeCheckbox() {
@@ -184,8 +190,9 @@
     }
 
     function disableEditRow(tr) {
+        $(tr).removeClass('table-success')
         $.each($(tr).children(), (i, td) => {
-            if (td.getAttribute('edit')) {
+            if (td.getAttribute('edit')==='true') {
                 let t = $(td)
                 let child = t.children().first()
                 let type = td.getAttribute('type')
@@ -203,8 +210,9 @@
     }
 
     function enableEditRow(tr) {
+        $(tr).addClass('table-success')
         $.each($(tr).children(), (i, td) => {
-            if (td.getAttribute('edit')) {
+            if (td.getAttribute('edit')==='true') {
                 let type = td.getAttribute('type')
                 let t = $(td)
                 let txt = t.text()
@@ -216,6 +224,7 @@
                 } else {
                     ele.value = txt
                 }
+                $(ele).addClass('form-control form-control-sm')
                 t.append(ele)
             }
         })
@@ -223,6 +232,8 @@
 
     function intoEditMode() {
         let edit = $('#editmode_id')
+        edit.removeClass('btn-primary')
+        edit.addClass('btn-warning')
         edit.attr('edit', 'true')
         edit.text('退出编辑模式')
         $('#tb_body').find(':checked').each((_, t) => {
@@ -232,6 +243,8 @@
 
     function exitEditMode(t) {
         let edit = $('#editmode_id')
+        edit.removeClass('btn-warning')
+        edit.addClass('btn-primary')
         edit.attr('edit', 'false')
         edit.text('进入编辑模式')
         $('#tb_body').find(':checked').each((_, t) => {
@@ -243,6 +256,41 @@
         window['global_dict'] = {}
         $.each(arg['global_dict'], (k, v) => {
             window['global_dict'][k] = v
+        })
+    }
+
+    function packageCondtions() {
+        let objs = $('#searchcondition_id').find('input,select')
+        let pack = {}
+        $.each(objs,(_,obj)=>{
+            let key = obj.getAttribute('key')
+            let val = null
+            if (obj.tagName === 'INPUT'){
+                val = $(obj).val()
+            }else if (obj.tagName ==='SELECT') {
+                val = $(obj).val()
+            }
+            if (pack.hasOwnProperty(key)){
+                pack[key].push(val)
+            } else {
+                pack[key] = [val]
+            }
+        })
+        console.log(pack)
+        return pack
+    }
+
+    function createSelectOptions(arg) {
+        let select = $('#condition_id')
+        let tb_config = arg.tb_config
+        tb_config.forEach((colConf)=>{
+            if (colConf.display && colConf.q) {
+                let opt = document.createElement('option')
+                opt.innerHTML = colConf.title
+                opt.value = colConf.q
+                select.append(opt)
+            }
+
         })
     }
 
@@ -305,41 +353,57 @@
 
     }
 
-    function createPager(arg) {
-        let page_range = arg['page_range']
-        let current_page = arg['current_page']
-        let total_page = arg['total_page']
-        let nav = document.createElement('nav')
-        let ul = document.createElement('ul')
-        $(nav).append(ul)
-        $(ul).addClass('pagination')
-        for (let i = page_range[0]; i <=page_range[1] ; i++) {
-            let a = document.createElement('a')
-            a.innerHTML = i
-            $(a).addClass('page-link')
-            let li = document.createElement('li')
-            $(li).append(a)
-            $(li).addClass('page-item')
-            if (current_page === i){
-                $(li).addClass('active')
-            }
-            $(ul).append(li)
-        }
-        $('#pager_id').append(nav)
-    }
 
     function initCallback(arg) {
-        console.log(arg)
+        // console.log(arg)
         initGlobalDict(arg)
         createTableHead(arg)
         createTableBody(arg)
-        createPager(arg)
+        createSelectOptions(arg)
+        $('#pager_id').append(arg['pager'])
         bindSelectPage()
         bindCheckBox()
 
     }
+    function bindSearch() {
+        $('#search_id').on('click',()=>{
+            let pack = packageCondtions()
+            console.log(pack)
+            let pn = 1
+            $.ajax({
+                url: requestUrl,
+                data: {'pn':pn,'packageCondtions':JSON.stringify(pack)},
+                success: function (arg) {
+                    // initCallback(arg)
+                }
+            })
+        })
+    }
+    function bindAddCondition() {
+        $('#addcondition_id').on('click',(e)=>{
+            let current_condtion = $('#condition_id').find("option:selected")
+            let col_key = current_condtion.val()
+            let dict = window['global_dict']
+            let div = $('#searchcondition_id')
+            let inner_div = document.createElement('div')
+            let label = document.createElement("label")
+            label.innerHTML = current_condtion.text()
+            $(label).addClass("col-form-label-sm")
+            $(inner_div).append(label)
+            let input = null
+            if (dict.hasOwnProperty(col_key)) {
+                input = document.createElement('select')
+                makeSelectElement(input,col_key)
 
-
+            }else {
+                input = document.createElement('input')
+                // $(input).addClass('form-control')
+            }
+            input.setAttribute('key',col_key)
+            $(inner_div).append(input)
+            div.append(inner_div)
+        })
+    }
     function myAjax(url, method, data, callback) {
         $.ajax({
             url: url,
@@ -368,6 +432,8 @@
             bindCancelAllRows()
             bindReverseAllRows()
             bindSaveData()
+            bindAddCondition()
+            bindSearch()
         }
     })
 })()

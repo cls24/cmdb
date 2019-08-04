@@ -77,10 +77,8 @@ class Asset(Model):
     )
     device_type_id = models.IntegerField(choices=device_type_choices, default=1)
     device_status_id = models.IntegerField(choices=device_status_choices, default=1)
-
     Cabinet_num = models.CharField('机架号', max_length=30, null=True)
     Cabinet_order = models.CharField('机架中序号', max_length=30, null=True)
-
     idc = models.ForeignKey('IDC', null=True, on_delete=models.CASCADE, verbose_name='IDC机房')
     business_unit = models.ForeignKey('BusinessUnit', null=True, on_delete=models.CASCADE, verbose_name='业务线')
     department = models.ForeignKey('Department', null=True,on_delete=models.CASCADE, verbose_name='部门')

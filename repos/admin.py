@@ -10,7 +10,6 @@ admin.site.register(models.BusinessUnit)
 admin.site.register(models.IDC)
 admin.site.register(models.Server)
 admin.site.register(models.UserGroup)
+admin.site.register(models.AdminGroup)
 admin.site.register(models.AG)
 admin.site.register(models.UG)
-admin.site.register(models.AdminGroup)
-

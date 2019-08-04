@@ -21,8 +21,8 @@ def api_post_method(req):
     md5.update((mykey + client_ctime).encode('utf8'))
     vaildition_key = md5.hexdigest()
     ctime = time.time()
-    if ctime - 3600 > float(client_ctime):
-        return False
+    # if ctime - 3600 > float(client_ctime):
+    #     return False
     if url in urls:
         return False
     else:

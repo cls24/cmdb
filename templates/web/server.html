@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>server</h1>
+    <button id="checkall_id"  type="button" class="btn btn-primary btn-sm">选择所有</button>
+    <button id="cancelall_id" type="button" class="btn btn-primary btn-sm">取消所有</button>
+    <button id="reverseall_id" type="button" class="btn btn-primary btn-sm">反选</button>
+    <button id="editmode_id" edit=false" type="button" class="btn btn-primary btn-sm">进入编辑模式</button>
+    <button id="editmode_id" type="button" class="btn btn-primary btn-sm">批量删除</button>
+    <button id="savedata_id" type="button" class="btn btn-primary btn-sm">保存</button>
+    <div class="table-responsive">
+        <table id="tb" class="table  table-sm table-bordered">
+            <thead id="tb_head" class="thead-light">
+            </thead>
+            <tbody id="tb_body">
+            </tbody>
+        </table>
+    </div>
+    <div id="pager_id"></div>
+{% endblock %}
+{% block script %}
+    <script>
+        $(function () {
+            $.CRUD('/web/serverjson', '{{ csrf_token }}')
+        })
+    </script>
+{% endblock %}

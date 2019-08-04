@@ -1,8 +1,28 @@
 from repos import models
-import json
+import json,math
+from utils.pager import Pager
+from django.db.models import Q
+
+class Conditions:
+    @staticmethod
+    def orderListQ(lst):
+        con = Q()
+        # lst = [{"key1":[]},{"key2":[]},{"key3":[]}]
+        for i in lst:
+            q = Q()
+            if i[0] == "addtime" or i[0] == "ordervalue" or i[0] == "arrears":
+                q.connector = "AND"
+                q.children.append((i[0] + "__gte", i[1][0]))
+                q.children.append((i[0] + "__lte", i[1][1]))
+            else:
+                q.connector = "OR"
+                for j in i[1]:
+                    q.children.append((i[0], j))
+            con.add(q, "AND")
+        return con
 
 class AssetJson():
-    li = [
+    tb_config = [
         {
             'q': None,
             'title': '选择',
@@ -36,7 +56,7 @@ class AssetJson():
             'title': '机架号',
             'display': True,
             'text': {'content': '{n}', 'kwargs': {'n': '@Cabinet_num'}},
-            'attrs': {'edit': True, 'type': 'input', 'newvalue': '', 'oldvalue': '@Cabinet_num'}
+            'attrs': {'edit': True, 'type': 'input', 'newvalue': '', 'oldvalue': '@Cabinet_num','input_type':"datetime-local"}
 
         },
         {
@@ -82,25 +102,20 @@ class AssetJson():
             'attrs':{}
         },
     ]
-    def getKeys(self,li):
-        l = []
-        for i in li:
-            if i['q']:
-                l.append(i['q'])
-        return l
-
 
     def get(self, req):
         pn = req.GET.get('pn')
-        current_page = pn if pn else 1
-        print(pn)
-        res = models.Asset.objects.all().values(*self.getKeys(self.li))
+        packageCondtions = json.loads(req.GET.get('packageCondtions'))
+        current_page = int(pn)
+        per_page = 10
+        pg_num = 5
+        res = models.Asset.objects.all().values(*[i['q'] for i in self.tb_config if i['q']])
+        total_pg = math.ceil(len(res)/per_page)
+        pager = Pager.makePager(pg_num, current_page, total_pg)
         data = {
-            "tb_config": self.li,
-            'tb_data':list(res),
-            'page_range':(1,6),
-            'current_page':1,
-            'total_page':10,
+            "tb_config": self.tb_config,
+            'tb_data':list(res[per_page*(current_page-1):per_page*current_page]),
+            'pager':pager,
             'global_dict':{
                 'device_status_id': models.Asset.device_status_choices,
                 'device_type_id': models.Asset.device_type_choices,
