@@ -2,9 +2,7 @@ from django.db import models
 from django.db.models import Model
 
 
-# Create your models here.
-
-
+# asset models here.
 class Department(Model):
     name = models.CharField(max_length=64)
 
@@ -179,3 +177,41 @@ class AssetRecord(Model):
     add_time = models.DateTimeField(auto_now_add=True)
     asset = models.ForeignKey('Asset', on_delete=models.CASCADE)
     user = models.ForeignKey('User', on_delete=models.CASCADE, null=True)
+
+
+#accessgate model
+
+class Host(Model):
+    name = models.CharField(unique=True,max_length=64)
+    ipaddr = models.GenericIPAddressField(unique=True)
+    port = models.SmallIntegerField()
+    class Meta():
+        unique_together = ('name','ipaddr')
+
+class HostGroup(Model):
+    name = models.CharField(unique=True,max_length=64)
+    user_proFile = models.ManyToManyField('UserProFile')
+
+
+class Host2RemoteUser(Model):
+    host = models.ForeignKey('Host', on_delete=models.CASCADE)
+    remoteuser = models.ForeignKey('RemoteUser', on_delete=models.CASCADE)
+    host_group = models.ManyToManyField('HostGroup')
+
+    class Meta():
+        unique_together = ('host','remoteuser')
+
+class UserProFile(Model):
+    name = models.CharField(max_length=32,unique=True)
+    password = models.CharField(max_length=64)
+
+class RemoteUser(Model):
+    auth_type_choice = (
+        (1,'证书'),
+        (2,'密码'),
+    )
+    auth_type = models.SmallIntegerField(choices=auth_type_choice,default=2)
+    name = models.CharField(max_length=32)
+    password = models.CharField(max_length=64,blank=True,null=True)
+    class Meta():
+        unique_together = ('auth_type','name','password')

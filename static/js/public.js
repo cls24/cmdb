@@ -1,11 +1,11 @@
 
 (function () {
 
-    function init(pn) {
+    function init(data) {
         // myAjax(requestUrl, 'GET', null, initCallback)
         $.ajax({
             url: requestUrl,
-            data: {'pn':pn},
+            data: data,
             success: function (arg) {
                 initCallback(arg)
             }
@@ -26,7 +26,7 @@
     }
 
     function bindCheckBox() {
-        $('.selectrow').on('click',(e) => {
+        $(document.body).on('click','.selectrow',(e) => {
             let tr = $(e.currentTarget).parent().parent()
             if (isEditMode()) {
                 if (e.currentTarget.checked) {
@@ -95,25 +95,33 @@
                     function (arg) {
                         let pn = $('.page-item.active').attr('pn')
                         clearTable()
-                        init(pn)
+                        init({'pn':pn})
                     }
                 )
             }
         })
     }
+
     function clearTable() {
         $('#tb_head').children().remove()
         $('#tb_body').children().remove()
         $('#pager_id').children().remove()
     }
+
     function bindSelectPage() {
-        $('.page-link').on('click',(e)=>{
-            // let pn = e.currentTarget.innerHTML
+        $(document.body).on('click','.page-link',(e)=>{
             let pn = $(e.currentTarget).parent().attr('pn')
+            let condtions = $('#searchcondition_id').children()
             clearTable()
-            init(pn)
+            if (condtions.length>0){
+                init({'pn':pn,'packageCondtions':JSON.stringify(packageCondtions())})
+            } else {
+                init({'pn':pn})
+            }
+
         })
     }
+
     function isEditMode() {
         return $('#editmode_id').attr('edit') === 'true'
     }
@@ -276,7 +284,6 @@
                 pack[key] = [val]
             }
         })
-        console.log(pack)
         return pack
     }
 
@@ -353,32 +360,33 @@
 
     }
 
-
     function initCallback(arg) {
         // console.log(arg)
         initGlobalDict(arg)
         createTableHead(arg)
         createTableBody(arg)
-        createSelectOptions(arg)
+        if ($('#condition_id').children().length===0){
+            createSelectOptions(arg)
+        }
         $('#pager_id').append(arg['pager'])
-        bindSelectPage()
-        bindCheckBox()
+
 
     }
+
     function bindSearch() {
         $('#search_id').on('click',()=>{
             let pack = packageCondtions()
-            console.log(pack)
-            let pn = 1
-            $.ajax({
-                url: requestUrl,
-                data: {'pn':pn,'packageCondtions':JSON.stringify(pack)},
-                success: function (arg) {
-                    // initCallback(arg)
-                }
-            })
+            clearTable()
+            init({'pn':1,'packageCondtions':JSON.stringify(pack)})
         })
     }
+
+    function bindDelCondtionbtn() {
+        $(document.body).on("click", ".condtion_del", (e)=>{
+            $(e.currentTarget).parent().remove()
+        })
+    }
+
     function bindAddCondition() {
         $('#addcondition_id').on('click',(e)=>{
             let current_condtion = $('#condition_id').find("option:selected")
@@ -401,9 +409,15 @@
             }
             input.setAttribute('key',col_key)
             $(inner_div).append(input)
+            let delbtn = document.createElement("button")
+            delbtn.innerHTML = '删除'
+            delbtn.className = 'condtion_del'
+            $(delbtn).addClass('btn btn-sm btn-warning')
+            $(inner_div).append(delbtn)
             div.append(inner_div)
         })
     }
+
     function myAjax(url, method, data, callback) {
         $.ajax({
             url: url,
@@ -426,7 +440,7 @@
         'CRUD': function (url, csrf_token) {
             requestUrl = url
             csrfToken = csrf_token
-            init(1)
+            init({'pn':1})
             bindEditMode()
             bindCheckAllRows()
             bindCancelAllRows()
@@ -434,6 +448,9 @@
             bindSaveData()
             bindAddCondition()
             bindSearch()
+            bindDelCondtionbtn()
+            bindSelectPage()
+            bindCheckBox()
         }
     })
 })()

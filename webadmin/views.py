@@ -6,7 +6,6 @@ from webadmin.services import asset,server
 
 class Asset(View):
     def get(self,req):
-
         return render(req, 'web/asset.html')
 
 class AssetJson(View):

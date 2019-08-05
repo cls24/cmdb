@@ -5,19 +5,14 @@ from django.db.models import Q
 
 class Conditions:
     @staticmethod
-    def orderListQ(lst):
+    def makeQ(dic):
         con = Q()
         # lst = [{"key1":[]},{"key2":[]},{"key3":[]}]
-        for i in lst:
+        for k,v in dic.items():
             q = Q()
-            if i[0] == "addtime" or i[0] == "ordervalue" or i[0] == "arrears":
-                q.connector = "AND"
-                q.children.append((i[0] + "__gte", i[1][0]))
-                q.children.append((i[0] + "__lte", i[1][1]))
-            else:
-                q.connector = "OR"
-                for j in i[1]:
-                    q.children.append((i[0], j))
+            q.connector = "OR"
+            for i in v:
+                q.children.append((k, i))
             con.add(q, "AND")
         return con
 
@@ -42,7 +37,8 @@ class AssetJson():
             'title': '资产类型',
             'display': True,
             'text':{'content': '{n}','kwargs':{'n':'@@device_type_id'}},
-            'attrs': {'edit': True, 'type': 'select','newvalue':'','oldvalue':'@@device_type_id'}
+            'attrs': {'edit': True, 'type': 'select','newvalue':'','oldvalue':'@@device_type_id'},
+
         },
         {
             'q': 'device_status_id',
@@ -102,14 +98,17 @@ class AssetJson():
             'attrs':{}
         },
     ]
-
     def get(self, req):
         pn = req.GET.get('pn')
-        packageCondtions = json.loads(req.GET.get('packageCondtions'))
+        Condtions = req.GET.get('packageCondtions')
+        if Condtions:
+            q = Conditions.makeQ(json.loads(Condtions))
+            res = models.Asset.objects.filter(q).values(*[i['q'] for i in self.tb_config if i['q']])
+        else:
+            res = models.Asset.objects.all().values(*[i['q'] for i in self.tb_config if i['q']])
         current_page = int(pn)
         per_page = 10
         pg_num = 5
-        res = models.Asset.objects.all().values(*[i['q'] for i in self.tb_config if i['q']])
         total_pg = math.ceil(len(res)/per_page)
         pager = Pager.makePager(pg_num, current_page, total_pg)
         data = {
